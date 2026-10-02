@@ -18,7 +18,7 @@ import { Badge, SentimentBadge } from "@/components/ui/Badge";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { formatNumber, formatPct } from "@/lib/helpers";
+import { cn, formatNumber, formatPct } from "@/lib/helpers";
 import {
   AreaChart,
   Area,

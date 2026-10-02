@@ -1,0 +1,139 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  ANALYST
+  VIEWER
+}
+
+enum Sentiment {
+  POSITIVE
+  NEUTRAL
+  NEGATIVE
+}
+
+enum FeedbackStatus {
+  NEW
+  REVIEWED
+  ACTIONED
+}
+
+// Matches the `Channel` union already used in src/lib/types/index.ts
+enum Channel {
+  SUPPORT_TICKET
+  APP_STORE
+  NPS_SURVEY
+  SALES_CALL
+  COMMUNITY
+  OTHER
+}
+
+model Workspace {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  users    User[]
+  feedback Feedback[]
+  themes   Theme[]
+  reports  Report[]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(VIEWER)
+  createdAt    DateTime @default(now())
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+
+  reports Report[]
+
+  @@index([workspaceId])
+}
+
+model Feedback {
+  id             String         @id @default(cuid())
+  content        String
+  channel        Channel
+  sourceRef      String?
+  customerLabel  String?
+  sentiment      Sentiment?
+  sentimentScore Float?
+  status         FeedbackStatus @default(NEW)
+  createdAt      DateTime       @default(now())
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+
+  themes    FeedbackTheme[]
+  embedding Embedding?
+
+  @@index([workspaceId])
+  @@index([workspaceId, status])
+  @@index([workspaceId, createdAt])
+}
+
+model Theme {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  color       String?
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+
+  feedback FeedbackTheme[]
+
+  @@index([workspaceId])
+  @@unique([workspaceId, name])
+}
+
+model FeedbackTheme {
+  feedbackId String
+  themeId    String
+  confidence Float @default(1.0)
+
+  feedback Feedback @relation(fields: [feedbackId], references: [id])
+  theme    Theme    @relation(fields: [themeId], references: [id])
+
+  @@id([feedbackId, themeId])
+  @@index([themeId])
+}
+
+// Vector similarity is done in application code against this Float[] for
+// now (Section 09.2 / AI3). Swap to a native `vector` column via a manual
+// SQL migration later if you enable the pgvector extension.
+model Embedding {
+  id         String @id @default(cuid())
+  feedbackId String @unique
+  vector     Float[]
+
+  feedback Feedback @relation(fields: [feedbackId], references: [id])
+}
+
+model Report {
+  id          String   @id @default(cuid())
+  title       String
+  periodStart DateTime
+  periodEnd   DateTime
+  contentJson Json
+  createdAt   DateTime @default(now())
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+
+  generatedById String?
+  generatedBy   User?   @relation(fields: [generatedById], references: [id], onDelete: SetNull)
+  @@index([workspaceId])
+}

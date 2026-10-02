@@ -1,14 +1,13 @@
 import type { Theme } from "@/lib/types";
-import { mockThemes } from "@/lib/mock/data";
+import { apiClient } from "@/lib/api/client";
 
 export async function getThemes(): Promise<Theme[]> {
-  await new Promise((r) => setTimeout(r, 500));
-  return mockThemes;
+  return apiClient.get<Theme[]>("/themes");
 }
 
 export async function getThemeById(id: string): Promise<Theme> {
-  await new Promise((r) => setTimeout(r, 300));
-  const theme = mockThemes.find((t) => t.id === id);
+  const themes = await getThemes();
+  const theme = themes.find((t) => t.id === id);
   if (!theme) throw new Error("Theme not found");
   return theme;
 }

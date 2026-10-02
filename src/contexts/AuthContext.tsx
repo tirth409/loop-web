@@ -1,53 +1,41 @@
 "use client";
 
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  useCallback,
-} from "react";
+import React, { createContext, useContext, useMemo } from "react";
+import { useSession, signOut as nextAuthSignOut } from "next-auth/react";
 import type { User } from "@/lib/types";
-import { logout as apiLogout } from "@/lib/api/auth";
 
 interface AuthContextValue {
   user: User | null;
   isLoading: boolean;
-  setUser: (user: User | null) => void;
   signOut: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUserState] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: session, status } = useSession();
 
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem("loop_user");
-      if (stored) setUserState(JSON.parse(stored));
-    } catch (_) {}
-    setIsLoading(false);
-  }, []);
+  const user: User | null = useMemo(() => {
+    if (!session?.user) return null;
+    return {
+      id: session.user.id,
+      name: session.user.name ?? "",
+      email: session.user.email ?? "",
+      role: session.user.role,
+      workspaceId: session.user.workspaceId,
+      workspaceName: session.user.workspaceName,
+      createdAt: "",
+    };
+  }, [session]);
 
-  const setUser = useCallback((u: User | null) => {
-    setUserState(u);
-    if (u) {
-      localStorage.setItem("loop_user", JSON.stringify(u));
-    } else {
-      localStorage.removeItem("loop_user");
-    }
-  }, []);
-
-  const signOut = useCallback(() => {
-    apiLogout();
-    setUser(null);
-    window.location.href = "/login";
-  }, [setUser]);
+  const signOut = () => {
+    nextAuthSignOut({ callbackUrl: "/login" });
+  };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, setUser, signOut }}>
+    <AuthContext.Provider
+      value={{ user, isLoading: status === "loading", signOut }}
+    >
       {children}
     </AuthContext.Provider>
   );

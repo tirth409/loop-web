@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { getReports, generateReport } from "@/lib/api/reports";
 import type { Report } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
@@ -8,11 +9,14 @@ import { ErrorState, EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
+import { usePermissions } from "@/hooks/usePermissions";
 import { toast } from "sonner";
 import { FileText, Download, Eye, Plus, Calendar } from "lucide-react";
 import { formatDate } from "@/lib/helpers";
 
 export default function ReportsPage() {
+  const router = useRouter();
+  const perms = usePermissions();
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -46,10 +50,10 @@ export default function ReportsPage() {
     }
     setGenerating(true);
     try {
-      await generateReport(form);
+      const report = await generateReport(form);
       toast.success("Report generated successfully");
       setCreateOpen(false);
-      fetchReports();
+      router.push(`/reports/${report.id}`);
     } catch (err: any) {
       toast.error(err.message || "Failed to generate report");
     } finally {
@@ -64,9 +68,11 @@ export default function ReportsPage() {
           <h1 className="page-title">Voice of Customer Reports</h1>
           <p className="page-subtitle">Generate and view automated executive summaries</p>
         </div>
-        <Button onClick={() => setCreateOpen(true)} leftIcon={<Plus className="h-4 w-4" />}>
-          Generate Report
-        </Button>
+        {perms.canGenerateReports && (
+          <Button onClick={() => setCreateOpen(true)} leftIcon={<Plus className="h-4 w-4" />}>
+            Generate Report
+          </Button>
+        )}
       </div>
 
       {error && !loading ? (
@@ -82,10 +88,14 @@ export default function ReportsPage() {
           ))}
         </div>
       ) : reports.length === 0 ? (
-        <EmptyState 
-          title="No reports generated" 
+        <EmptyState
+          title="No reports generated"
           description="Create your first Voice of Customer report to share insights with your team."
-          action={{ label: "Generate Report", onClick: () => setCreateOpen(true) }}
+          action={
+            perms.canGenerateReports
+              ? { label: "Generate Report", onClick: () => setCreateOpen(true) }
+              : undefined
+          }
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -110,12 +120,26 @@ export default function ReportsPage() {
                 </div>
               </div>
               <div className="p-3 border-t border-neutral-100 flex gap-2">
-                <Button variant="secondary" size="sm" className="flex-1" leftIcon={<Eye className="h-3.5 w-3.5" />}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="flex-1"
+                  leftIcon={<Eye className="h-3.5 w-3.5" />}
+                  onClick={() => router.push(`/reports/${report.id}`)}
+                >
                   View
                 </Button>
-                <Button variant="outline" size="sm" className="flex-1" leftIcon={<Download className="h-3.5 w-3.5" />}>
-                  Export PDF
-                </Button>
+                {perms.canExportData && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    leftIcon={<Download className="h-3.5 w-3.5" />}
+                    onClick={() => router.push(`/reports/${report.id}?print=1`)}
+                  >
+                    Export PDF
+                  </Button>
+                )}
               </div>
             </div>
           ))}
@@ -126,7 +150,7 @@ export default function ReportsPage() {
         isOpen={createOpen}
         onClose={() => setCreateOpen(false)}
         title="Generate Report"
-        description="Select a date range to generate an automated Voice of Customer summary."
+        description="Select a date range to generate an automated Voice of Customer summary. This takes a few seconds."
         size="sm"
         footer={
           <>

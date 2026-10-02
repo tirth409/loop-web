@@ -150,7 +150,7 @@ export function SentimentChart({
                 border: "1px solid #e2e8f0",
                 fontSize: "12px",
               }}
-              formatter={(val: number) => [`${val}%`, ""]}
+              formatter={(val) => [`${Number(val ?? 0)}%`, ""]}
             />
           </PieChart>
         </ResponsiveContainer>
@@ -164,7 +164,7 @@ export function SentimentChart({
               />
               <span className="text-xs text-neutral-600">
                 {item.name}{" "}
-                <span className="font-semibold text-neutral-800">{item.value}%</span>
+                <span className="font-semibold text-neutral-800">{Number(item.value ?? 0)}%</span>
               </span>
             </div>
           ))}

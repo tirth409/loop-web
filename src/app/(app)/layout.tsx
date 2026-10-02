@@ -33,9 +33,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   if (!user) return null;
 
   return (
-    <div className="flex h-screen bg-neutral-50 overflow-hidden">
+    <div className="flex h-screen bg-neutral-50 overflow-hidden print:block print:h-auto print:overflow-visible print:bg-white">
       {/* Desktop sidebar */}
-      <div className="hidden lg:flex lg:w-[260px] lg:shrink-0 h-full">
+      <div className="hidden lg:flex lg:w-[260px] lg:shrink-0 h-full print:hidden">
         <Sidebar />
       </div>
 
@@ -54,11 +54,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       )}
 
       {/* Main content */}
-      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-        <Header onMenuClick={() => setSidebarOpen(true)} />
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6">
-          {children}
-        </main>
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden print:overflow-visible">
+        <div className="print:hidden">
+          <Header onMenuClick={() => setSidebarOpen(true)} />
+        </div>
+        <main className="flex-1 overflow-y-auto p-4 lg:p-6 print:overflow-visible print:p-0">{children}</main>
       </div>
     </div>
   );

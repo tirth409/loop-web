@@ -1,10 +1,6 @@
 import type { DashboardData } from "@/lib/types";
-import { mockDashboardData } from "@/lib/mock/data";
+import { apiClient } from "@/lib/api/client";
 
-export async function getDashboardData(_dateRange?: {
-  from: string;
-  to: string;
-}): Promise<DashboardData> {
-  await new Promise((r) => setTimeout(r, 600));
-  return mockDashboardData;
+export async function getDashboardData(days = 30): Promise<DashboardData> {
+  return apiClient.get<DashboardData>(`/dashboard?days=${days}`);
 }

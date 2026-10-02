@@ -6,14 +6,12 @@ import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Zap, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { login } from "@/lib/api/auth";
-import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import type { Metadata } from "next";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { setUser } = useAuth();
+
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ email: "", password: "" });
@@ -29,26 +27,24 @@ export default function LoginPage() {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const errs = validate();
-    if (Object.keys(errs).length) {
-      setErrors(errs);
-      return;
-    }
-    setErrors({});
-    setLoading(true);
-    try {
-      const { user, token } = await login(form);
-      localStorage.setItem("loop_token", token);
-      setUser(user);
-      toast.success(`Welcome back, ${user.name.split(" ")[0]}!`);
-      router.push("/dashboard");
-    } catch (err: any) {
-      setErrors({ api: err.message || "Login failed. Please try again." });
-    } finally {
-      setLoading(false);
-    }
-  };
+  e.preventDefault();
+  const errs = validate();
+  if (Object.keys(errs).length) {
+    setErrors(errs);
+    return;
+  }
+  setErrors({});
+  setLoading(true);
+  try {
+    await login(form);
+    toast.success("Welcome back!");
+    router.push("/dashboard");
+  } catch (err: any) {
+    setErrors({ api: err.message || "Login failed. Please try again." });
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="animate-fade-in">

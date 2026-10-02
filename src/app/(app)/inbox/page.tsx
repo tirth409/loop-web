@@ -11,9 +11,16 @@ import {
   Eye,
   ChevronDown,
 } from "lucide-react";
+import { getThemes } from "@/lib/api/themes";
 import { toast } from "sonner";
 import { getFeedback, updateFeedbackStatus } from "@/lib/api/feedback";
-import type { Feedback, FeedbackFilters, FeedbackStatus, Channel, Sentiment } from "@/lib/types";
+import type {
+  Feedback,
+  FeedbackFilters,
+  FeedbackStatus,
+  Channel,
+  Sentiment,
+} from "@/lib/types";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
@@ -83,9 +90,11 @@ function StatusDropdown({
       className={cn(
         "text-xs font-medium rounded-full px-2 py-1 border cursor-pointer focus:outline-none focus:ring-1 focus:ring-brand-500 transition-colors",
         current === "NEW" && "bg-blue-50 text-blue-700 border-blue-200",
-        current === "REVIEWED" && "bg-warning-50 text-warning-600 border-warning-100",
-        current === "ACTIONED" && "bg-success-50 text-success-700 border-success-100",
-        disabled && "opacity-50 cursor-not-allowed"
+        current === "REVIEWED" &&
+          "bg-warning-50 text-warning-600 border-warning-100",
+        current === "ACTIONED" &&
+          "bg-success-50 text-success-700 border-success-100",
+        disabled && "opacity-50 cursor-not-allowed",
       )}
     >
       {options.map((s) => (
@@ -99,7 +108,10 @@ function StatusDropdown({
 
 export default function InboxPage() {
   const perms = usePermissions();
-  const [filters, setFilters] = useState<FeedbackFilters>({ page: 1, pageSize: 10 });
+  const [filters, setFilters] = useState<FeedbackFilters>({
+    page: 1,
+    pageSize: 10,
+  });
   const [searchInput, setSearchInput] = useState("");
   const [feedbackList, setFeedbackList] = useState<Feedback[]>([]);
   const [total, setTotal] = useState(0);
@@ -113,7 +125,22 @@ export default function InboxPage() {
   const [csvOpen, setCsvOpen] = useState(false);
   const [channelOpen, setChannelOpen] = useState(false);
   const [detailFeedback, setDetailFeedback] = useState<Feedback | null>(null);
+  const [themeNames, setThemeNames] = useState<string[]>([]);
 
+  const loadThemes = useCallback(async () => {
+    try {
+      const themes = await getThemes();
+      setThemeNames(
+        themes.map((t) => t.name).sort((a, b) => a.localeCompare(b)),
+      );
+    } catch {
+      // The theme filter is optional; the inbox still works without it.
+    }
+  }, []);
+
+  React.useEffect(() => {
+    loadThemes();
+  }, [loadThemes]);
   const fetchFeedback = useCallback(async (f: FeedbackFilters) => {
     setLoading(true);
     setError(null);
@@ -147,7 +174,7 @@ export default function InboxPage() {
     try {
       await updateFeedbackStatus(id, status);
       setFeedbackList((list) =>
-        list.map((f) => (f.id === id ? { ...f, status } : f))
+        list.map((f) => (f.id === id ? { ...f, status } : f)),
       );
       toast.success("Status updated");
     } catch {
@@ -163,8 +190,13 @@ export default function InboxPage() {
   };
 
   const hasActiveFilters =
-    filters.search || filters.channel || filters.sentiment || filters.status;
-
+    filters.search ||
+    filters.channel ||
+    filters.sentiment ||
+    filters.status ||
+    filters.theme ||
+    filters.dateFrom ||
+    filters.dateTo;
   return (
     <div className="space-y-5 animate-fade-in">
       {/* Header */}
@@ -256,6 +288,41 @@ export default function InboxPage() {
                 </option>
               ))}
             </select>
+            <select
+              value={filters.theme ?? ""}
+              onChange={(e) => handleFilterChange("theme", e.target.value)}
+              className="form-input w-auto"
+              aria-label="Filter by theme"
+            >
+              <option value="">All Themes</option>
+              {themeNames.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+            <label className="flex items-center gap-1.5 text-xs text-neutral-500">
+              From
+              <input
+                type="date"
+                value={filters.dateFrom ?? ""}
+                max={filters.dateTo || undefined}
+                onChange={(e) => handleFilterChange("dateFrom", e.target.value)}
+                className="form-input w-auto"
+                aria-label="From date"
+              />
+            </label>
+            <label className="flex items-center gap-1.5 text-xs text-neutral-500">
+              To
+              <input
+                type="date"
+                value={filters.dateTo ?? ""}
+                min={filters.dateFrom || undefined}
+                onChange={(e) => handleFilterChange("dateTo", e.target.value)}
+                className="form-input w-auto"
+                aria-label="To date"
+              />
+            </label>
             {hasActiveFilters && (
               <Button
                 variant="ghost"
@@ -275,7 +342,10 @@ export default function InboxPage() {
         {loading ? (
           <SkeletonTable rows={8} cols={7} />
         ) : error ? (
-          <ErrorState description={error} onRetry={() => fetchFeedback(filters)} />
+          <ErrorState
+            description={error}
+            onRetry={() => fetchFeedback(filters)}
+          />
         ) : feedbackList.length === 0 ? (
           <EmptyState
             title="No feedback found"
@@ -332,7 +402,9 @@ export default function InboxPage() {
                         </Badge>
                       </td>
                       <td>
-                        <span className="text-sm text-neutral-700">{fb.customerLabel}</span>
+                        <span className="text-sm text-neutral-700">
+                          {fb.customerLabel}
+                        </span>
                       </td>
                       <td>
                         <SentimentBadge sentiment={fb.sentiment} />
@@ -379,10 +451,14 @@ export default function InboxPage() {
                       {formatDate(fb.createdAt, true)}
                     </span>
                   </div>
-                  <p className="text-sm text-neutral-800 leading-relaxed">{fb.content}</p>
+                  <p className="text-sm text-neutral-800 leading-relaxed">
+                    {fb.content}
+                  </p>
                   <div className="flex items-center justify-between">
                     <div className="flex gap-2">
-                      <Badge variant="neutral">{CHANNEL_LABELS[fb.channel]}</Badge>
+                      <Badge variant="neutral">
+                        {CHANNEL_LABELS[fb.channel]}
+                      </Badge>
                       <StatusBadge status={fb.status} />
                     </div>
                     <button
@@ -414,6 +490,7 @@ export default function InboxPage() {
         onSuccess={() => {
           setAddOpen(false);
           fetchFeedback(filters);
+          loadThemes();
           toast.success("Feedback added successfully");
         }}
       />
@@ -423,6 +500,7 @@ export default function InboxPage() {
         onSuccess={() => {
           setCsvOpen(false);
           fetchFeedback(filters);
+          loadThemes();
         }}
       />
       <ChannelIngestModal
@@ -431,6 +509,7 @@ export default function InboxPage() {
         onSuccess={() => {
           setChannelOpen(false);
           fetchFeedback(filters);
+          loadThemes();
         }}
       />
       <Drawer
@@ -439,7 +518,17 @@ export default function InboxPage() {
         title="Feedback Detail"
         size="md"
       >
-        {detailFeedback && <FeedbackDetail feedback={detailFeedback} />}
+        {detailFeedback && (
+          <FeedbackDetail
+            feedback={detailFeedback}
+            onReclassified={(updated) => {
+              setDetailFeedback(updated);
+              setFeedbackList((list) =>
+                list.map((f) => (f.id === updated.id ? updated : f)),
+              );
+            }}
+          />
+        )}
       </Drawer>
     </div>
   );

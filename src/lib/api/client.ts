@@ -2,7 +2,6 @@
  * Central API client — all backend communication goes through here.
  * Replace BASE_URL with your actual backend URL.
  */
-
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 class ApiError extends Error {
@@ -17,26 +16,16 @@ class ApiError extends Error {
   }
 }
 
-function getToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem("loop_token");
-}
-
 async function request<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const token = getToken();
-
-  const headers: HeadersInit = {
-    "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...options.headers,
-  };
-
   const response = await fetch(`${BASE_URL}${path}`, {
     ...options,
-    headers,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
   });
 
   if (!response.ok) {

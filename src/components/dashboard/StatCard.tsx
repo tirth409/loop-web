@@ -17,12 +17,13 @@ import { Skeleton } from "@/components/ui/Skeleton";
 interface StatCardProps {
   title: string;
   value: string | number;
-  trend?: number;
+  trend?: number | null;
   comparison?: string;
   icon: React.ElementType;
   iconColor?: string;
   iconBg?: string;
   loading?: boolean;
+  invertTrend?: boolean;
 }
 
 export function StatCard({
@@ -34,6 +35,7 @@ export function StatCard({
   iconColor = "text-brand-600",
   iconBg = "bg-brand-50",
   loading,
+  invertTrend,
 }: StatCardProps) {
   if (loading) {
     return (
@@ -45,7 +47,8 @@ export function StatCard({
     );
   }
 
-  const isPositive = trend !== undefined && trend >= 0;
+  const isUp = trend !== undefined && trend !== null && trend >= 0;
+  const isGood = trend !== undefined && trend !== null && (invertTrend ? trend <= 0 : trend >= 0);
 
   return (
     <div className="card p-6 hover:shadow-card-md transition-shadow duration-200">
@@ -59,14 +62,14 @@ export function StatCard({
         <p className="text-3xl font-bold text-neutral-900 tracking-tight">
           {typeof value === "number" ? formatNumber(value) : value}
         </p>
-        {trend !== undefined && (
+        {trend !== undefined && trend !== null && (
           <div
             className={cn(
               "flex items-center gap-0.5 text-xs font-semibold pb-1",
-              isPositive ? "text-success-600" : "text-danger-600"
+              isGood ? "text-success-600" : "text-danger-600"
             )}
           >
-            {isPositive ? (
+            {isUp ? (
               <TrendingUp className="h-3.5 w-3.5" />
             ) : (
               <TrendingDown className="h-3.5 w-3.5" />

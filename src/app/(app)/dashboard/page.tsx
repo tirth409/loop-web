@@ -40,12 +40,12 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
+  const [days, setDays] = useState(30);
   const fetchData = async () => {
     setLoading(true);
     setError(null);
     try {
-      const result = await getDashboardData();
+      const result = await getDashboardData(days);
       setData(result);
     } catch (err: any) {
       setError(err.message || "Failed to load dashboard data");
@@ -56,7 +56,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [days]);
 
   const firstName = user?.name?.split(" ")[0] ?? "there";
 
@@ -77,6 +77,17 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+                    <select
+            value={days}
+            onChange={(e) => setDays(Number(e.target.value))}
+            className="form-input w-auto"
+            aria-label="Date range"
+          >
+            <option value={7}>Last 7 days</option>
+            <option value={14}>Last 14 days</option>
+            <option value={30}>Last 30 days</option>
+            <option value={90}>Last 90 days</option>
+          </select>
           <Button
             variant="outline"
             size="sm"
@@ -107,7 +118,7 @@ export default function DashboardPage() {
           title="Total Feedback"
           value={data?.stats.totalFeedback ?? 0}
           trend={data?.stats.totalFeedbackTrend}
-          comparison="vs. last 30 days"
+          comparison={`vs. previous ${days} days`}
           icon={MessageSquare}
           iconColor="text-brand-600"
           iconBg="bg-brand-50"
@@ -117,6 +128,7 @@ export default function DashboardPage() {
           title="Negative Feedback %"
           value={data ? `${data.stats.negativePct}%` : "—"}
           trend={data?.stats.negativePctTrend}
+          invertTrend
           comparison="lower is better"
           icon={AlertTriangle}
           iconColor="text-danger-500"
@@ -127,7 +139,7 @@ export default function DashboardPage() {
           title="New This Week"
           value={data?.stats.newThisWeek ?? 0}
           trend={data?.stats.newThisWeekTrend}
-          comparison="vs. last week"
+          comparison={`vs. previous ${days} days`}
           icon={Calendar}
           iconColor="text-accent-600"
           iconBg="bg-accent-50"

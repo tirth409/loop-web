@@ -1,12 +1,21 @@
-"use client";
-
-import React from "react";
+import React, { useState } from "react";
+import { toast } from "sonner";
 import type { Feedback } from "@/lib/types";
 import { Badge, SentimentBadge, StatusBadge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { formatDate } from "@/lib/helpers";
-import { Calendar, User, Tag, FileText, Hash } from "lucide-react";
+import { Calendar, User, Tag, FileText, Hash, Sparkles } from "lucide-react";
+import { reclassifyFeedback } from "@/lib/api/feedback";
 
-export function FeedbackDetail({ feedback }: { feedback: Feedback }) {
+export function FeedbackDetail({
+  feedback,
+  onReclassified,
+}: {
+  feedback: Feedback;
+  onReclassified?: (updated: Feedback) => void;
+}) {
+  const [reclassifying, setReclassifying] = useState(false);
+
   const CHANNEL_LABELS: Record<string, string> = {
     SUPPORT_TICKET: "Support Ticket",
     APP_STORE: "App Store",
@@ -16,12 +25,36 @@ export function FeedbackDetail({ feedback }: { feedback: Feedback }) {
     OTHER: "Other",
   };
 
+  const handleReclassify = async () => {
+    setReclassifying(true);
+    try {
+      const updated = await reclassifyFeedback(feedback.id);
+      onReclassified?.(updated);
+      toast.success("Feedback reclassified");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to reclassify");
+    } finally {
+      setReclassifying(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header Info */}
       <div className="flex items-center justify-between">
-        <SentimentBadge sentiment={feedback.sentiment} />
-        <StatusBadge status={feedback.status} />
+        <div className="flex items-center gap-2">
+          <SentimentBadge sentiment={feedback.sentiment} />
+          <StatusBadge status={feedback.status} />
+        </div>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={handleReclassify}
+          loading={reclassifying}
+        >
+          <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+          Re-classify
+        </Button>
       </div>
 
       {/* Content */}
@@ -41,7 +74,7 @@ export function FeedbackDetail({ feedback }: { feedback: Feedback }) {
             {feedback.customerLabel || "Anonymous"}
           </p>
         </div>
-        
+
         <div className="space-y-1">
           <div className="flex items-center gap-1.5 text-xs font-medium text-neutral-500">
             <FileText className="h-3.5 w-3.5" /> Channel
@@ -87,7 +120,7 @@ export function FeedbackDetail({ feedback }: { feedback: Feedback }) {
           <p className="text-sm text-neutral-500 italic">No themes detected</p>
         )}
       </div>
-      
+
       {/* Footer Info */}
       <div className="pt-2 text-[10px] text-neutral-400 font-mono">
         ID: {feedback.id}

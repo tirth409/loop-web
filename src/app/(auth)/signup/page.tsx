@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Zap, ArrowRight, Check } from "lucide-react";
 import { toast } from "sonner";
 import { signup } from "@/lib/api/auth";
-import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
@@ -18,7 +17,6 @@ const PASSWORD_RULES = [
 
 export default function SignupPage() {
   const router = useRouter();
-  const { setUser } = useAuth();
   const [showPw, setShowPw] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -52,14 +50,14 @@ export default function SignupPage() {
     setErrors({});
     setLoading(true);
     try {
-      const { user, token } = await signup({
+      // signup() creates the account, then signs in via NextAuth (session
+      // cookie is set automatically), so there is nothing to store here.
+      await signup({
         name: form.name,
         email: form.email,
         password: form.password,
         workspaceName: form.workspaceName,
       });
-      localStorage.setItem("loop_token", token);
-      setUser(user);
       toast.success("Workspace created! Welcome to LOOP.");
       router.push("/dashboard");
     } catch (err: any) {

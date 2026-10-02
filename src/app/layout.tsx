@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { SessionProvider } from "@/components/providers/SessionProvider";
+
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Toaster } from "sonner";
 
@@ -24,6 +26,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.variable}>
       <body>
+        <SessionProvider>
         <AuthProvider>
           {children}
           <Toaster
@@ -37,6 +40,7 @@ export default function RootLayout({
             }}
           />
         </AuthProvider>
+        </SessionProvider>
       </body>
     </html>
   );
